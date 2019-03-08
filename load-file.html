@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SVG modelēšana</title>
+  <script type="text/javascript" src="js/SVGBuilder.js"></script>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="text/javascript">
+
+    window.onload = function() {
+      document.getElementById("loadFile").addEventListener("click", loadFile);
+      document.getElementById("reinsert").addEventListener("click", reinsert);
+    }
+
+    var model = {}; // Global object where to keep the SVGBuilder object instance and other params
+
+    function loadFile() {
+      var svgFileURL = "assets/drawing.svg";
+      svg = new SVGBuilder();
+      svg.insert(document.getElementById("svg-container"), true);
+
+      var el = svg.addEllipse({rx:200, ry:50, cx:350, cy:200, fill:"red"});
+      // A little example of clone() method
+      var el2 = el.clone();
+      el2.setAttributes({fill:"green"});
+      el2.translate(100, 100);
+      el2.insert(svg.element);
+
+      // Create a placeholder element where the svg image will be stored
+      var g1 = svg.addGroup();
+      g1.scale(5, 3);
+      g1.translate(50, 10);
+      g1.rotate(10);
+
+      // Load the svg image from file
+      var f = g1.addSVGFile({}, svgFileURL, function() {
+        // Important: callback called when the file has loaded
+        console.log("SVG file loaded");
+        var obj = this.getElement("rect817");
+        obj.setAttributes({fill:"black"});
+      });
+      console.log("addSVGFile called"); // This will happen before the callback is called
+
+      // Create a second placeholder
+      var g2 = svg.addGroup();
+      g2.scale(1, 4);
+      g2.translate(300, 200);
+      g2.rotate(-30);
+
+      // Store values in global object 
+      model.svg = svg;
+      model.f = f;
+      model.g1 = g1;
+      model.g2 = g2;
+      model.target = "g1";
+    }
+
+    function reinsert() {
+      if (!model.svg) return;
+      if (model.target == "g1") {
+        model.f.insert(model.g2.element);
+        model.target = "g2";
+      } else if (model.target == "g2") {
+        model.f.insert(model.g1.element);
+        model.target = "g1";
+      }
+    }
+
+  </script>
+</head>
+<body>
+  <h1>SVGBuilder: SVG modelēšana ar JavaScript</h1>
+  <p class="note">
+    Demo: svg faila ielāde.
+  </p>
+  <button id="loadFile">Run demo</button>
+  <button id="reinsert">Reinsert</button>
+  <div id="svg-container">Šo tekstu nomainīs SVG elements</div>
+</body>
+</html>

@@ -3,50 +3,181 @@
 <head>
   <meta charset="UTF-8">
   <title>SVG modelēšana</title>
-  <link rel="stylesheet" href="/css/styles.css">
-  <script type="text/javascript" src="/js/SVGBuilder.js"></script>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="text/javascript" src="js/SVGBuilder.js"></script>
   <script>
+
+    /* Model class start *******************************************************************/
+
+    function Model(setupFn, params) {
+      this.setupFn = setupFn;
+      this.params = params;
+      this.framerate = 24;
+    }
+    Model.prototype.init = function(container) {
+      this.svg = new SVGBuilder();
+      this.setupFn.call(this, this.svg);
+      this.svg.insert(container, true);
+    }
+    Model.prototype.loop = function(loopFn) {
+      this.frame = 0;
+      this.next(loopFn);
+    }
+    Model.prototype.next = function(loopFn) {
+      loopFn.call(this, this.svg);
+      this.frame++;
+      if (!this.stopLoop) {
+        window.setTimeout(() => this.next(loopFn), 1000 / this.framerate);
+      } else {
+        this.stopLoop = false;
+      }
+    }
+    Model.prototype.setFramerate = function(framerate) {
+      this.framerate = framerate;
+    }
+    Model.prototype.stop = function() {
+      this.stopLoop = true;
+    }
+
+    /* Model class end *********************************************************************/
+
     window.onload = function() {
       document.getElementById("runTest").addEventListener("click", runTest);
+      document.getElementById("pathDemo").addEventListener("click", pathDemo);
     }
-    function clickHandler() {
-      console.log("Click happened.");
-    }
+
     function runTest() {
-      var svg = new SVGBuilder();
-      console.log(svg);
-      // Add some basic shapes. Reference: https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Basic_Shapes
-      svg.addRect({x:100, y:100, width:200, height:150, class:"eco", style:"cursor:pointer", onclick:clickHandler});
-      var g = svg.addGroup();
-      g.addCircle({cx:350, cy:130, r:100, class:"sun"});
-      g.addEllipse({rx:150, ry:70, cx:350, cy:300, fill:"#00f", stroke:"#008", "stroke-width":10});
-      g.translate(200, 100);
-      g.rotate(45, 350, 200);
-      svg.addLine({x1:50, y1:30, x2:500, y2:350});
-      svg.addText({x:10, y:360, x2:500, y2:350, fill:"#f0f", style:"font-family:sans-serif; font-size:35px"}, "Žigla, brūna lapsa lec pāri slinkam sunim");
-      svg.insert(document.getElementById("svg-container"), true);
-      // Animate the group
-      var params = {
-        g: g,
+      var model = new Model(function(svg) {
+        function randomFillColor(targetSvgObject) {
+          return function(e) {
+            var r = Math.floor(Math.random() * 0x100);
+            var g = Math.floor(Math.random() * 0x100);
+            var b = Math.floor(Math.random() * 0x100);
+            var randomRGB = "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).substr(1);
+            targetSvgObject.setAttributes({"fill": randomRGB});
+          }
+        }
+
+        this.polygonShades = svg.addGroup();
+
+        this.r = svg.addRect({x:-100, y:-75, width:200, height:150, fill:"#0a0", style:"cursor:pointer", opacity:0.8});
+        this.r.setAttributes({onclick:randomFillColor(this.r)});
+        this.c = svg.addCircle({cx:350, cy:130, r:100, class:"sun"});
+        this.g = svg.addGroup();
+        this.g.addEllipse({rx:150, ry:70, cx:0, cy:0, fill:"#00f", stroke:"#008", "stroke-width":10});
+        this.g.addLine({x1:-110, y1:-50, x2:110, y2:50, stroke:"#008", "stroke-width":10});
+        this.g.addLine({x1:-110, y1:50, x2:110, y2:-50, stroke:"#008", "stroke-width":10});
+        this.l = svg.addLine({x1:50, y1:30, x2:500, y2:350, class:"thickRed"});
+        this.frameCounter = svg.addText({x:5, y:30, fill:"#f0f", style:"pointer-events: none; font-family:sans-serif; font-size:35px"}, "0");
+
+        this.pl = svg.addPolygon({class:"thickRed", fill:"none"});
+        this.pl.addPoint({x:240, y:140});
+        this.pl.addPoint({x:320, y:220});
+        this.pl.addPoint({x:400, y:140});
+        this.pl.addPoint({x:480, y:220});
+        this.pl.update();
+      }, {
         x: 0,
         y: 0,
         dx: 3,
         dy: 3,
-        maxX: 220,
-        maxY: 180,
-        angle: 0
-      }
-      function animate() {
-        params.x += params.dx;
-        params.y += params.dy;
-        if (params.x > params.maxX || params.x < 0) params.dx *= -1; 
-        if (params.y > params.maxY || params.y < 0) params.dy *= -1; 
-        params.angle += 1;
-        params.g.translate(params.x, params.y);
-        params.g.rotate(params.angle, 350, 200);
-        window.setTimeout(animate, 50);
-      }
-      animate();
+        gx: 200,
+        gy: 200,
+        maxX: 700,
+        maxY: 400,
+        angle: 0,
+        key: {}
+      });
+      model.init(document.getElementById("svg-container"));
+      model.loop(function(svg) {
+        this.params.x += this.params.dx;
+        this.params.y += this.params.dy;
+        if (this.params.x > this.params.maxX || this.params.x < 0) this.params.dx *= -1; 
+        if (this.params.y > this.params.maxY || this.params.y < 0) this.params.dy *= -1; 
+        this.params.angle += 1;
+        this.r.translate(this.params.x, this.params.y);
+        this.r.rotate(this.params.angle);
+        this.frameCounter.setValue(this.frame);
+
+        if (this.params.key.arrowLeft) this.params.gx -= 5;
+        if (this.params.key.arrowRight) this.params.gx += 5;
+        if (this.params.key.arrowUp) this.params.gy -= 5;
+        if (this.params.key.arrowDown) this.params.gy += 5;
+        this.g.translate(this.params.gx, this.params.gy);
+
+        this.l.setAttributes({x1:this.params.x, y1:this.params.y, x2:this.params.gx, y2:this.params.gy});
+
+        // Put a shade.
+        var shade = this.pl.clone();
+        shade.setAttributes({class:null, stroke:"black", "stroke-width":15, "stroke-opacity":0.05});
+        shade.insert(this.polygonShades.element);
+        window.setTimeout(() => shade.remove(), 3000);
+        // Random distort polygon
+        this.pl.points.forEach((pointData) => {
+          pointData.x += Math.floor(Math.random() * 11) - 5;
+          pointData.y += Math.floor(Math.random() * 11) - 5;
+        });
+        this.pl.update();
+
+        if (this.frame == 50) this.r.remove();
+        if (this.frame == 90) this.r.insert(svg.element);
+        if (this.frame == 150) this.c.remove();
+        if (this.frame == 100) this.setFramerate(50);
+        if (this.frame == 500) this.stop();
+      });
+      // Warning: this is a bad place for this code: the code below should be executed only once. Repeat runTest() calls will add new global events
+      model.svg.element.addEventListener("mousedown", (e) => {
+        // To prevent text selection outside the svg object
+        if (e.detail > 1) e.preventDefault();
+      });
+      document.addEventListener("keydown", (e) => {
+        //console.log("keydown:", e.code);
+        if (e.code == "ArrowLeft") model.params.key.arrowLeft = true;
+        if (e.code == "ArrowRight") model.params.key.arrowRight = true;
+        if (e.code == "ArrowUp") model.params.key.arrowUp = true;
+        if (e.code == "ArrowDown") model.params.key.arrowDown = true;
+      });
+      document.addEventListener("keyup", (e) => {
+        //console.log("keyup:", e.code);
+        if (e.code == "ArrowLeft") model.params.key.arrowLeft = false;
+        if (e.code == "ArrowRight") model.params.key.arrowRight = false;
+        if (e.code == "ArrowUp") model.params.key.arrowUp = false;
+        if (e.code == "ArrowDown") model.params.key.arrowDown = false;
+      });
+    }
+
+    function pathDemo() {
+      var svg = new SVGBuilder();
+      //Grid
+      for (var x = 0; x < 700; x += 10) svg.addLine({x1:x, y1:0, x2:x, y2:400, stroke:"#ccc"});
+      for (var y = 0; y < 400; y += 10) svg.addLine({x1:0, y1:y, x2:700, y2:y, stroke:"#ccc"});
+      // Path
+      var p = svg.addPath({stroke:"#f00", "stroke-width":3, fill:"#fff", "fill-opacity":0.7});
+      // Piece #1 - straight lines
+      p.addPoint({cmd:"M", x:70, y:70}); // Move to (70, 70)
+      p.addPoint({cmd:"V", y:300}); // Vertical line to y = 300
+      p.addPoint({cmd:"H", x:120}); // Horizontal line to x = 120
+      p.addPoint({cmd:"v", dy:50}); // Relative vertical line to y = y + 50
+      p.addPoint({cmd:"h", dx:100}); // Relative horizontal line to x = x + 100
+      p.addPoint({cmd:"L", x:300, y:200}); // Line to (300, 200)
+      p.addPoint({cmd:"l", dx:-100, dy:20}); // Relative line to (x-100, y+20)
+      p.addPoint({cmd:"Z"});
+      // Piece #2 - curved lines
+      p.addPoint({cmd:"m", dx:300, dy:50}); // Relative move to (x+300, y+50)
+      p.addPoint({cmd:"C", x1:330, y1:150, x2:330, y2:200, x:400, y:300}); // Cubic bezier to (400, 300)
+      p.addPoint({cmd:"c", dx1:60, dy1:-70, dx2:170, dy2:80, dx:250, dy:70}); // Relative cubic bezier to (+250, +70)
+      p.addPoint({cmd:"S", x2:600, y2:150, x:600, y:250}); // Smooth cubic bezier to (600, 250)
+      p.addPoint({cmd:"s", dx2:-200, dy2:0, dx:-100, dy:-100}); // Relative smooth cubic bezier to (-100, -100)
+      p.addPoint({cmd:"Q", x1:550, y1:300, x:600, y:150}); // Quadratic bezier to (600, 150)
+      p.addPoint({cmd:"q", dx1:150, dy1:-50, dx:0, dy:-100}); // Relative quadratic bezier to (+0, -100)
+      p.addPoint({cmd:"T", x:550, y:100}); // Smooth quadratic bezier to (500, 50)
+      p.addPoint({cmd:"t", dx:-50, dy:0}); // Relative smooth quadratic bezier to (-50, +0)
+      p.addPoint({cmd:"A", rx:25, ry:80, angle:-10, large:1, sweep:0, x:450, y:110}); // Arc to (450, 110)
+      p.addPoint({cmd:"a", rx:100, ry:30, angle:20, large:1, sweep:0, dx:-80, dy:10}); // Relative arc to (-80, +10)
+      p.addPoint({cmd:"Z"});
+      p.update();
+
+      svg.insert(document.getElementById("svg-container"), true);
     }
   </script>
 </head>
@@ -56,6 +187,7 @@
     Šis projekts ir veltīts ērtai dinamisku, interaktīvu SVG modeļu veidošanai.
   </p>
   <button id="runTest">Run test</button>
+  <button id="pathDemo">Path demo</button>
   <div id="svg-container">Šo tekstu nomainīs SVG elements</div>
 </body>
 </html>

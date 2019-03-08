@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ES6 classes</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="text/javascript" src="js/SVGBuilder.js"></script>
+  <script>
+
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes
+
+    class Person {
+      // country = "Latvia"; // Class members not allowed in ES6! Must assign to the prototype: Person.prototype.country = "Latvia";
+      constructor(name, parent) {
+        this.name = name;
+        if (typeof parent !== "undefined") {
+          this.parent = parent;
+        }
+      }
+      // toString() metode tiek automātiski izsaukta, kad nepieciešams konvertēt objektu uz string.
+      toString() {
+        var txt = "My name is " + this.name + ".";
+        if (this.parent) {
+          txt += " My parent is " + this.parent.name + ".";
+        }
+        return txt;
+      }
+      static getGod() {
+        if(!Person.god) return Person.god = new Person("God");
+        return Person.god;
+      }
+    }
+
+    var pavils = new Person("Pāvils Jurjāns");
+    var janis = new Person("Jānis Pliekšāns", pavils);
+
+    pavils.toString = function() {
+      return "My real name is Bond.";
+    }
+
+    console.log(pavils + "");
+    console.log(janis);
+    console.log(janis + ""); // Ar +”” JavaScript ir spiests konvertēt objektu janis string tipa vērtībā, kas tiek darīts, izsaucot objekta metodi toString()
+
+    class Employee extends Person {
+      constructor(company, name, parent) {
+        super(name, parent);
+        this.company = company;
+      }
+      toString() {
+        var txt = super.toString();
+        txt += " I work at " + this.company + ".";
+        return txt;
+      }
+    }
+
+    var jesus = new Employee("Heaven", "Jesus Christ", Person.getGod())
+    console.log(jesus + "");
+
+  </script>
+</head>
+<body>
+</body>
+</html>

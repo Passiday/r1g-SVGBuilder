@@ -40,7 +40,14 @@ circle.sun {
   stroke: #ffa;
 }
 
-line {
+line.thickRed, polyline.thickRed, polygon.thickRed {
   stroke-width: 15px;
   stroke: #f00;
+}
+
+svg text {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
