@@ -19,10 +19,10 @@
       svg = new SVGBuilder();
       svg.insert(document.getElementById("svg-container"), true);
 
-      var el = svg.addEllipse({rx:200, ry:50, cx:350, cy:200, fill:"red"});
+      var el = svg.addEllipse({rx:200, ry:50, cx:350, cy:200, style:{fill:"red"}});
       // A little example of clone() method
       var el2 = el.clone();
-      el2.setAttributes({fill:"green"});
+      el2.setStyle({fill:"green"});
       el2.translate(100, 100);
       el2.insert(svg.element);
 
@@ -37,7 +37,7 @@
         // Important: callback called when the file has loaded
         console.log("SVG file loaded");
         var obj = this.getElement("rect817");
-        obj.setAttributes({fill:"black"});
+        obj.setStyle({fill:"black"});
       });
       console.log("addSVGFile called"); // This will happen before the callback is called
 
