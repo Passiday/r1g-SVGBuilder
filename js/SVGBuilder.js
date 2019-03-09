@@ -492,10 +492,16 @@ class SVGFile extends SVGElement {
     // Note: can't call the init() method because the element does not exist yet! It will be created only when the load() method results in successfully loaded svg document
   }
 
-  load(onLoaded) {
+  load(onLoaded, onError) {
     var self = this;
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
+      if (xhr.readyState == 4 && xhr.status >= 400) {
+        // File not found
+        if (typeof onError === "function") {
+          onError.call(self, xhr);
+        }
+      }
       if (xhr.readyState == 4 && xhr.status == 200) {
         self.element = xhr.responseXML.getElementsByTagName('svg')[0];
         self.setAttributes(self.attr);
@@ -619,12 +625,15 @@ class SVGContainer extends SVGElement {
     return svgObject;
   }
 
-  addSVGFile(attr, svgURL, onLoaded) {
+  addSVGFile(attr, svgURL, onLoaded, onError) {
     var svgObject = new SVGFile(attr, svgURL);
     var container = this.element;
     svgObject.load(function() {
       this.insert(container);
       onLoaded.call(this);
+    }, function(xhr) {
+      if (typeof onError !== "function") return;
+      onError.call(this, xhr);
     });
     return svgObject;
   }

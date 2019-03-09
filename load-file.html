@@ -38,6 +38,9 @@
         console.log("SVG file loaded");
         var obj = this.getElement("rect817");
         obj.setStyle({fill:"black"});
+      }, function(xhr) {
+        // This optional function called in case of loading error
+        console.log("File loading error. Status code:", xhr.status);
       });
       console.log("addSVGFile called"); // This will happen before the callback is called
 
