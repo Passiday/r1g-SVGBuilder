@@ -14,20 +14,39 @@ class SVGElement {
   setAttributes(attr) {
     if (!attr) attr = {};
     if (!this.attrList) return;
-    this.attrList.forEach((attrName) => {
-      if (attrName in attr) {
-        var attrValue = attr[attrName];
+    for (let attrName in attr) {
+      if (this.attrList.includes(attrName)) {
+        let attrValue = attr[attrName];
         if (attrValue === null) {
           this.element.removeAttribute(attrName);
-          return;
+          continue;
         }
-        if (typeof(attrValue) === 'function') {
-          this.element[attrName] = attrValue;
-          return;
+        if (attrName == "style" && typeof attrValue == "object") {
+          this.setStyle(attrValue, true);
+        } else {
+          if (typeof(attrValue) === 'function') {
+            this.element[attrName] = attrValue;
+            continue;
+          }
+          this.element.setAttribute(attrName, attrValue);
         }
-        this.element.setAttribute(attrName, attrValue);
+      } else {
+        console.log("Warning: unsupported attribute", attrName);
       }
-    });
+    }
+  }
+
+  setStyle(styleObj, wipe) {
+    if (!styleObj) {
+      if (!wipe) return;
+      this.setAttributes({style:null});
+    }
+    if (wipe) {
+      this.setAttributes({style:null});
+    }
+    for (let stylePty in styleObj) {
+      this.element.style[stylePty] = styleObj[stylePty];
+    }
   }
 
   setValue(nodeValue) {
@@ -144,7 +163,7 @@ class SVGTransform {
 class SVGRect extends SVGElement {
   constructor(attr) {
     super();
-    this.init("rect", attr, ["id", "style", "class", "x", "y", "width", "height", "rx", "ry", "fill", "stroke", "stroke-width", "opacity", "fill-opacity", "stroke-opacity", "onclick"]);
+    this.init("rect", attr, ["id", "style", "class", "x", "y", "width", "height", "rx", "ry", "onclick"]);
   }
 }
 
@@ -153,7 +172,7 @@ class SVGRect extends SVGElement {
 class SVGCircle extends SVGElement {
   constructor(attr) {
     super();
-    this.init("circle", attr, ["id", "style", "class", "cx", "cy", "r", "fill", "stroke", "stroke-width", "opacity", "fill-opacity", "stroke-opacity", "onclick"]);
+    this.init("circle", attr, ["id", "style", "class", "cx", "cy", "r", "onclick"]);
   }
 }
 
@@ -162,7 +181,7 @@ class SVGCircle extends SVGElement {
 class SVGEllipse extends SVGElement {
   constructor(attr) {
     super();
-    this.init("ellipse", attr, ["id", "style", "class", "cx", "cy", "rx", "ry", "fill", "stroke", "stroke-width", "opacity", "fill-opacity", "stroke-opacity", "onclick"]);
+    this.init("ellipse", attr, ["id", "style", "class", "cx", "cy", "rx", "ry", "onclick"]);
   }
 }
 
@@ -171,7 +190,7 @@ class SVGEllipse extends SVGElement {
 class SVGLine extends SVGElement {
   constructor(attr) {
     super();
-    this.init("line", attr, ["id", "style", "class", "x1", "y1", "x2", "y2", "stroke", "stroke-width", "opacity", "fill-opacity", "stroke-opacity", "onclick"]);
+    this.init("line", attr, ["id", "style", "class", "x1", "y1", "x2", "y2", "onclick"]);
   }
 }
 
@@ -180,7 +199,7 @@ class SVGLine extends SVGElement {
 class SVGPolyline extends SVGElement {
   constructor(attr, points) {
     super();
-    this.init("polyline", attr, ["id", "style", "class", "fill", "stroke", "stroke-width", "opacity", "fill-opacity", "stroke-opacity", "onclick"]);
+    this.init("polyline", attr, ["id", "style", "class", "onclick"]);
     this.points = (typeof points == "undefined") ? [] : points;
     this.update();
   }
@@ -216,7 +235,7 @@ class SVGPolyline extends SVGElement {
 class SVGPolygon extends SVGPolyline {
   constructor(attr, points) {
     super();
-    this.init("polygon", attr, ["id", "style", "class", "fill", "stroke", "stroke-width", "opacity", "fill-opacity", "stroke-opacity", "onclick"]);
+    this.init("polygon", attr, ["id", "style", "class", "onclick"]);
     this.points = (typeof points == "undefined") ? [] : points;
     this.update();
   }
@@ -229,7 +248,7 @@ class SVGPolygon extends SVGPolyline {
 class SVGPath extends SVGElement  {
   constructor(attr, points) {
     super();
-    this.init("path", attr, ["id", "style", "class", "fill", "stroke", "stroke-width", "opacity", "fill-opacity", "stroke-opacity", "onclick"]);
+    this.init("path", attr, ["id", "style", "class", "onclick"]);
     this.points = (typeof points == "undefined") ? [] : points;
     this.update();
   }
@@ -459,7 +478,7 @@ class SVGPath extends SVGElement  {
 class SVGText extends SVGElement {
   constructor(attr, value) {
     super();
-    this.init("text", attr, ["id", "style", "class", "x", "y", "fill", "opacity", "fill-opacity", "stroke-opacity", "onclick"], value);
+    this.init("text", attr, ["id", "style", "class", "x", "y", "onclick"], value);
   }
 }
 
@@ -625,6 +644,6 @@ class SVGBuilder extends SVGContainer {
 class SVGGroup extends SVGContainer {
   constructor(attr) {
     super();
-    this.init("g", attr, ["id", "style", "class", "fill", "stroke", "stroke-width"]);
+    this.init("g", attr, ["id", "style", "class", "onclick"]);
   }
 }

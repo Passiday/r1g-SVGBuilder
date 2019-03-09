@@ -54,23 +54,26 @@
             var g = Math.floor(Math.random() * 0x100);
             var b = Math.floor(Math.random() * 0x100);
             var randomRGB = "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).substr(1);
-            targetSvgObject.setAttributes({"fill": randomRGB});
+            // Alternative way: var randomRGB = "rgb(" + r + ", " + g + ", " + b +")";
+            targetSvgObject.setStyle({fill: randomRGB});
           }
         }
 
         this.polygonShades = svg.addGroup();
 
-        this.r = svg.addRect({x:-100, y:-75, width:200, height:150, fill:"#0a0", style:"cursor:pointer", opacity:0.8});
+        this.r = svg.addRect({x:-100, y:-75, width:200, height:150, style:{fill:"#0a0", opacity:0.8, cursor:"pointer"}});
         this.r.setAttributes({onclick:randomFillColor(this.r)});
         this.c = svg.addCircle({cx:350, cy:130, r:100, class:"sun"});
-        this.g = svg.addGroup();
-        this.g.addEllipse({rx:150, ry:70, cx:0, cy:0, fill:"#00f", stroke:"#008", "stroke-width":10});
-        this.g.addLine({x1:-110, y1:-50, x2:110, y2:50, stroke:"#008", "stroke-width":10});
-        this.g.addLine({x1:-110, y1:50, x2:110, y2:-50, stroke:"#008", "stroke-width":10});
-        this.l = svg.addLine({x1:50, y1:30, x2:500, y2:350, class:"thickRed"});
-        this.frameCounter = svg.addText({x:5, y:30, fill:"#f0f", style:"pointer-events: none; font-family:sans-serif; font-size:35px"}, "0");
+        this.c.setAttributes({onclick:randomFillColor(this.c)});
 
-        this.pl = svg.addPolygon({class:"thickRed", fill:"none"});
+        this.g = svg.addGroup();
+        this.g.addEllipse({rx:150, ry:70, cx:0, cy:0, style:{fill:"#00f", stroke:"#008", strokeWidth:10}});
+        this.g.addLine({x1:-110, y1:-50, x2:110, y2:50, style:{stroke:"#008", strokeWidth:10}});
+        this.g.addLine({x1:-110, y1:50, x2:110, y2:-50, style:{stroke:"#008", strokeWidth:10}});
+        this.l = svg.addLine({x1:50, y1:30, x2:500, y2:350, class:"thickRed"});
+        this.frameCounter = svg.addText({x:5, y:30, style:"fill:#f0f; pointer-events: none; font-family:sans-serif; font-size:35px"}, "0");
+
+        this.pl = svg.addPolygon({class:"thickRed", style:{fill:"none"}});
         this.pl.addPoint({x:240, y:140});
         this.pl.addPoint({x:320, y:220});
         this.pl.addPoint({x:400, y:140});
@@ -99,17 +102,17 @@
         this.r.rotate(this.params.angle);
         this.frameCounter.setValue(this.frame);
 
-        if (this.params.key.arrowLeft) this.params.gx -= 5;
-        if (this.params.key.arrowRight) this.params.gx += 5;
-        if (this.params.key.arrowUp) this.params.gy -= 5;
-        if (this.params.key.arrowDown) this.params.gy += 5;
+        if (this.params.key.ArrowLeft) this.params.gx -= 5;
+        if (this.params.key.ArrowRight) this.params.gx += 5;
+        if (this.params.key.ArrowUp) this.params.gy -= 5;
+        if (this.params.key.ArrowDown) this.params.gy += 5;
         this.g.translate(this.params.gx, this.params.gy);
 
         this.l.setAttributes({x1:this.params.x, y1:this.params.y, x2:this.params.gx, y2:this.params.gy});
 
         // Put a shade.
         var shade = this.pl.clone();
-        shade.setAttributes({class:null, stroke:"black", "stroke-width":15, "stroke-opacity":0.05});
+        shade.setStyle({stroke:"black", strokeWidth:15, strokeOpacity:0.05});
         shade.insert(this.polygonShades.element);
         window.setTimeout(() => shade.remove(), 3000);
         // Random distort polygon
@@ -132,27 +135,21 @@
       });
       document.addEventListener("keydown", (e) => {
         //console.log("keydown:", e.code);
-        if (e.code == "ArrowLeft") model.params.key.arrowLeft = true;
-        if (e.code == "ArrowRight") model.params.key.arrowRight = true;
-        if (e.code == "ArrowUp") model.params.key.arrowUp = true;
-        if (e.code == "ArrowDown") model.params.key.arrowDown = true;
+        model.params.key[e.code] = true;
       });
       document.addEventListener("keyup", (e) => {
         //console.log("keyup:", e.code);
-        if (e.code == "ArrowLeft") model.params.key.arrowLeft = false;
-        if (e.code == "ArrowRight") model.params.key.arrowRight = false;
-        if (e.code == "ArrowUp") model.params.key.arrowUp = false;
-        if (e.code == "ArrowDown") model.params.key.arrowDown = false;
+        model.params.key[e.code] = false;
       });
     }
 
     function pathDemo() {
       var svg = new SVGBuilder();
       //Grid
-      for (var x = 0; x < 700; x += 10) svg.addLine({x1:x, y1:0, x2:x, y2:400, stroke:"#ccc"});
-      for (var y = 0; y < 400; y += 10) svg.addLine({x1:0, y1:y, x2:700, y2:y, stroke:"#ccc"});
+      for (var x = 0; x < 700; x += 10) svg.addLine({x1:x, y1:0, x2:x, y2:400, style:{stroke:"#ccc"}});
+      for (var y = 0; y < 400; y += 10) svg.addLine({x1:0, y1:y, x2:700, y2:y, style:{stroke:"#ccc"}});
       // Path
-      var p = svg.addPath({stroke:"#f00", "stroke-width":3, fill:"#fff", "fill-opacity":0.7});
+      var p = svg.addPath({style:{stroke:"#f00", strokeWidth:3, fill:"#fff", fillOpacity:0.7}});
       // Piece #1 - straight lines
       p.addPoint({cmd:"M", x:70, y:70}); // Move to (70, 70)
       p.addPoint({cmd:"V", y:300}); // Vertical line to y = 300
