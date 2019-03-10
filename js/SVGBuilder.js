@@ -489,6 +489,7 @@ class SVGFile extends SVGElement {
     super();
     this.attr = attr;
     this.svgURL = svgURL;
+    this.loaded = false;
     // Note: can't call the init() method because the element does not exist yet! It will be created only when the load() method results in successfully loaded svg document
   }
 
@@ -505,6 +506,7 @@ class SVGFile extends SVGElement {
       if (xhr.readyState == 4 && xhr.status == 200) {
         self.element = xhr.responseXML.getElementsByTagName('svg')[0];
         self.setAttributes(self.attr);
+        self.loaded = true;
         if (typeof onLoaded === "function") {
           onLoaded.call(self);
         }
@@ -630,6 +632,7 @@ class SVGContainer extends SVGElement {
     var container = this.element;
     svgObject.load(function() {
       this.insert(container);
+      if (typeof onLoaded !== "function") return;
       onLoaded.call(this);
     }, function(xhr) {
       if (typeof onError !== "function") return;
