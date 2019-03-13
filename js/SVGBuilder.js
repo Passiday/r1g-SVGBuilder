@@ -677,10 +677,14 @@ class SVGBuilder extends SVGContainer {
         callback: null, // The callback function to be called when dragging takes place
         xStart  : 0, // Start point x, at screen coordinates
         yStart  : 0, // Start point y, at screen coordinates
-        dxScreen: 0, // Horizontal distance dragged, at screen coordinates
-        dyScreen: 0, // Vertical distance dragged, at screen coordinates
-        xTOffset: 0, // Horizontal translation, at drag start
-        yTOffset: 0, // Vertical translation, at drag start
+        dxScreen: 0, // X distance dragged, at screen coordinates
+        dyScreen: 0, // Y distance dragged, at screen coordinates
+        xLocal  : 0, // Pointer x, at local coordinates
+        yLocal  : 0, // Pointer y, at local coordinates
+        dxLocal : 0, // Horizontal distance dragged, at local coordinates
+        dyLocal : 0, // Y distance dragged, at local coordinates
+        xTOffset: 0, // X translation, at drag start
+        yTOffset: 0, // Y translation, at drag start
       }
     }
 
@@ -688,9 +692,13 @@ class SVGBuilder extends SVGContainer {
       var ds = this.draggableStore;
       evt.preventDefault();
 
+      var mousePos = {
+        x: evt.clientX,
+        y: evt.clientY
+      };
       ds.selected = body ? body : handle;
-      ds.xStart = evt.clientX;
-      ds.yStart = evt.clientY;
+      ds.xStart = mousePos.x;
+      ds.yStart = mousePos.y;
 
       // Retrieve the current translation
       var t = ds.selected.getTransform("TRS");
@@ -702,9 +710,25 @@ class SVGBuilder extends SVGContainer {
       ds.xTOffset = txParams[0];
       ds.yTOffset = txParams[1];
 
+      var xform = ds.selected.element.parentNode.getScreenCTM().inverse();
+      ds.xLocal = xform.a * mousePos.x + xform.c * mousePos.y + xform.e;
+      ds.yLocal = xform.b * mousePos.x + xform.d * mousePos.y + xform.f;
+
       ds.callback = callback ? callback : null;
       if (ds.callback) {
-        ds.callback("start", ds.selected);
+        var dragInfo = {
+          xScreen : mousePos.x,
+          yScreen : mousePos.y,
+          dxScreen: 0,
+          dyScreen: 0,
+          xLocal  : ds.xLocal,
+          yLocal  : ds.yLocal,
+          dxLocal : 0,
+          dyLocal : 0,
+          xObject : ds.xTOffset,
+          yObject : ds.yTOffset
+        }
+        ds.callback("start", ds.selected, dragInfo);
       }
     }
 
@@ -719,8 +743,11 @@ class SVGBuilder extends SVGContainer {
         };
         ds.dxScreen = mousePos.x - ds.xStart;
         ds.dyScreen = mousePos.y - ds.yStart;
-        // Calculate the distance, in the draggable body coordinate space
+        // Calculate the pointer coors in the draggable object coordinate space
         var xform = ds.selected.element.parentNode.getScreenCTM().inverse();
+        ds.xLocal = xform.a * mousePos.x + xform.c * mousePos.y + xform.e;
+        ds.yLocal = xform.b * mousePos.x + xform.d * mousePos.y + xform.f;
+        // Calculate the drag vector in the draggable object coordinate space
         ds.dxLocal = xform.a * ds.dxScreen + xform.c * ds.dyScreen;
         ds.dyLocal = xform.b * ds.dxScreen + xform.d * ds.dyScreen;
         var localPos = {
@@ -728,11 +755,23 @@ class SVGBuilder extends SVGContainer {
           y: ds.yTOffset + ds.dyLocal
         }
         // Call the optional callback, it has power to change (constrain) the local translation
-        if (ds.callback) {
-          ds.callback("move", ds.selected, {x:ds.dxScreen, y:ds.dyScreen}, localPos);
+        var dragInfo = {
+          xScreen : mousePos.x,
+          yScreen : mousePos.y,
+          dxScreen: ds.dxScreen,
+          dyScreen: ds.dyScreen,
+          xLocal  : ds.xLocal,
+          yLocal  : ds.yLocal,
+          dxLocal : ds.dxLocal,
+          dyLocal : ds.dyLocal,
+          xObject : ds.xTOffset + ds.dxLocal,
+          yObject : ds.yTOffset + ds.dyLocal
         }
-        // Move the draggable body
-        ds.selected.translate(localPos.x, localPos.y);
+        if (ds.callback) {
+          ds.callback("move", ds.selected, dragInfo);
+        }
+        // Move the draggable object
+        ds.selected.translate(dragInfo.xObject, dragInfo.yObject);
       }
     }
     var endDrag = (evt) => {

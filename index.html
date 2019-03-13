@@ -201,17 +201,31 @@
       queenSpace.translate(-2, 1);
       queenSpace.scale(0.02, 0.02);
 
+      // A small object to show the pointer location at local coordinate space
+      var pt = chessboard.addCircle({cx:0, cy:0, r:1, style:{fill: "red", pointerEvents: "none", display: "none"}});
+
       function queenLoaded() {
-        function fn(state, body, dScreen, dLocal) {
+        function fn(state, body, dragInfo) {
+          if (state == "start") {
+            pt.translate(dragInfo.xLocal, dragInfo.yLocal);
+            pt.setStyle({display: null});
+          }
           if (state == "move") {
-            var xCell = Math.round((dLocal.x + 2) / 10);
-            var yCell = Math.round((dLocal.y - 1) / 10);
+            // Move the pointer buddy
+            pt.translate(dragInfo.xLocal, dragInfo.yLocal);
+            // Find the cell where the pointer is
+            var xCell = Math.floor(dragInfo.xLocal / 10);
+            var yCell = Math.floor(dragInfo.yLocal / 10);
             if (xCell < 0) xCell = 0;
             if (xCell > 7) xCell = 7;
             if (yCell < 0) yCell = 0;
             if (yCell > 7) yCell = 7;
-            dLocal.x = xCell * 10 - 2;
-            dLocal.y = yCell * 10 + 1;
+            // Change the coordinates where the draggable will be moved to
+            dragInfo.xObject = xCell * 10 - 2;
+            dragInfo.yObject = yCell * 10 + 1;
+          }
+          if (state == "end") {
+            pt.setStyle({display: "none"});
           }
         }
         svg.draggable(queenSpace, fn);
