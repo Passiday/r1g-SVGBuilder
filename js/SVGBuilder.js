@@ -90,20 +90,36 @@ class SVGElement {
     return this.transform;
   }
 
-  translate(x, y) {
+  translate(x, y, relative) {
     var t = this.getTransform("TRS"); // Tranlate+Rotate+Scale
     if (t.template == "TRS") {
-      t.list[0].params = [x, y];
+      var params = t.list[0].params;
+      if (relative) {
+        params[0] += x;
+        params[1] += y;
+      } else {
+        params[0] = x;
+        params[1] = y;
+      }
       t.apply();
     }
   }
 
-  rotate(angle, cx, cy) {
+  rotate(angle, cx, cy, relative) {
     if (typeof cx == "undefined") cx = 0;
     if (typeof cy == "undefined") cy = 0;
     var t = this.getTransform("TRS");
     if (t.template == "TRS") {
-      t.list[1].params = [angle, cx, cy];
+      var params = t.list[1].params;
+      if (relative) {
+        params[0] += angle;
+        params[1] = cx;
+        params[2] = cy;
+      } else {
+        params[0] = angle;
+        params[1] = cx;
+        params[2] = cy;
+      }
       t.apply();
     }
   }
@@ -172,7 +188,7 @@ class SVGRect extends SVGElement {
 class SVGCircle extends SVGElement {
   constructor(attr) {
     super();
-    this.init("circle", attr, ["id", "style", "class", "cx", "cy", "r", "onclick"]);
+    this.init("circle", attr, ["id", "style", "class", "cx", "cy", "r", "onclick", "onmousedown", "onmouseup", "onmousemove", "onmouseenter", "onmouseleave"]);
   }
 }
 
@@ -645,9 +661,106 @@ class SVGContainer extends SVGElement {
 /* class SVGBuilder ***********************************************************************************************************************/
 
 class SVGBuilder extends SVGContainer {
-  constructor() {
+  constructor(attr) {
     super();
-    this.init("svg");
+    this.init("svg", attr, ["viewBox"]);
+  }
+
+  draggable(handle, callback, body) {
+    // handle   - the object that captures the mousedown event
+    // callback - optional function(state, body, dScreen, dLocal) called when the dragging takes place
+    // body     - optional object that is dragged around. By default, it's the handle. But it can be another element, for example a group object that contains the handle object
+
+    if (!this.draggableStore) {
+      this.draggableStore = {
+        selected: null, // The object currently being dragged
+        callback: null, // The callback function to be called when dragging takes place
+        xStart  : 0, // Start point x, at screen coordinates
+        yStart  : 0, // Start point y, at screen coordinates
+        dxScreen: 0, // Horizontal distance dragged, at screen coordinates
+        dyScreen: 0, // Vertical distance dragged, at screen coordinates
+        xTOffset: 0, // Horizontal translation, at drag start
+        yTOffset: 0, // Vertical translation, at drag start
+      }
+    }
+
+    var startDrag = (evt) => {
+      var ds = this.draggableStore;
+      evt.preventDefault();
+
+      ds.selected = body ? body : handle;
+      ds.xStart = evt.clientX;
+      ds.yStart = evt.clientY;
+
+      // Retrieve the current translation
+      var t = ds.selected.getTransform("TRS");
+      if (t.template != "TRS") {
+        ds.selected = null;
+        throw new Error("This SVGBuilder object has custom transform definitions. Drag is not enabled.");
+      }
+      var txParams = t.list[0].params;
+      ds.xTOffset = txParams[0];
+      ds.yTOffset = txParams[1];
+
+      ds.callback = callback ? callback : null;
+      if (ds.callback) {
+        ds.callback("start", ds.selected);
+      }
+    }
+
+    var drag = (evt) => {
+      var ds = this.draggableStore;
+      if (ds.selected) {
+        evt.preventDefault();
+        // Estimate the drag distance, in the screen coordinate space
+        var mousePos = {
+          x: evt.clientX,
+          y: evt.clientY
+        };
+        ds.dxScreen = mousePos.x - ds.xStart;
+        ds.dyScreen = mousePos.y - ds.yStart;
+        // Calculate the distance, in the draggable body coordinate space
+        var xform = ds.selected.element.parentNode.getScreenCTM().inverse();
+        ds.dxLocal = xform.a * ds.dxScreen + xform.c * ds.dyScreen;
+        ds.dyLocal = xform.b * ds.dxScreen + xform.d * ds.dyScreen;
+        var localPos = {
+          x: ds.xTOffset + ds.dxLocal, 
+          y: ds.yTOffset + ds.dyLocal
+        }
+        // Call the optional callback, it has power to change (constrain) the local translation
+        if (ds.callback) {
+          ds.callback("move", ds.selected, {x:ds.dxScreen, y:ds.dyScreen}, localPos);
+        }
+        // Move the draggable body
+        ds.selected.translate(localPos.x, localPos.y);
+      }
+    }
+    var endDrag = (evt) => {
+      var ds = this.draggableStore;
+      if (ds.selected) {
+        // Call the optional callback, it has power to change (constrain) the local translation
+        if (ds.callback) {
+          var localPos = {
+            x: ds.xTOffset + ds.dxLocal,
+            y: ds.yTOffset + ds.dyLocal
+          }
+          ds.callback("end", ds.selected, {x:ds.dxScreen, y:ds.dyScreen}, localPos);
+        }
+        // Clear the selected draggable
+        ds.selected = null;
+        ds.callback = null;
+      }
+    }
+
+    if (!this.element.getAttribute("draggable-init")) {
+      // This is the first time draggable() is called: register the onmousemove, onmouseup and onmouseleave events on the main svg element
+      this.element.setAttribute("draggable-init", 1);
+      this.element.addEventListener("mousemove", drag);
+      this.element.addEventListener("mouseleave", endDrag);
+      this.element.addEventListener("mouseup", endDrag);
+    }
+
+    handle.element.addEventListener("mousedown", startDrag);
   }
 }
 

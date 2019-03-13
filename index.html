@@ -44,6 +44,7 @@
     window.onload = function() {
       document.getElementById("runTest").addEventListener("click", runTest);
       document.getElementById("pathDemo").addEventListener("click", pathDemo);
+      document.getElementById("dragDemo").addEventListener("click", dragDemo);
     }
 
     function runTest() {
@@ -176,6 +177,55 @@
 
       svg.insert(document.getElementById("svg-container"), true);
     }
+
+    function dragDemo() {
+
+      var svg = new SVGBuilder();
+
+      var chessboard = svg.addGroup();
+      chessboard.translate(200, 0);
+      chessboard.scale(4, 4);
+      chessboard.rotate(10, 0, 0);
+      chessboard.addRect({x:-10, y:-10, width:100, height:100, style:{fill:"#fed"}});
+      for (let y = 0; y < 8; y++) {
+        for (let x = 0; x < 8; x++) {
+          if ((x + y) % 2 == 0) {
+            chessboard.addRect({x:x*10, y:y*10, width:10, height:10, style:{fill:"black"}});
+          }
+        }
+      }
+      var boardSurface = chessboard.addRect({x:-10, y:-10, width:100, height:100, style:{fill: "white", fillOpacity: 0, cursor: "move"}});
+      svg.draggable(boardSurface, null, chessboard); // drag activator, optional ondrag callback, optional dragged object
+
+      var queenSpace = chessboard.addGroup({style:{cursor: "move"}});
+      queenSpace.translate(-2, 1);
+      queenSpace.scale(0.02, 0.02);
+
+      function queenLoaded() {
+        function fn(state, body, dScreen, dLocal) {
+          if (state == "move") {
+            var xCell = Math.round((dLocal.x + 2) / 10);
+            var yCell = Math.round((dLocal.y - 1) / 10);
+            if (xCell < 0) xCell = 0;
+            if (xCell > 7) xCell = 7;
+            if (yCell < 0) yCell = 0;
+            if (yCell > 7) yCell = 7;
+            dLocal.x = xCell * 10 - 2;
+            dLocal.y = yCell * 10 + 1;
+          }
+        }
+        svg.draggable(queenSpace, fn);
+      }
+      var svgFileURL = "assets/chess-queen.svg";
+      var f = queenSpace.addSVGFile({}, svgFileURL, queenLoaded,
+        // Error handler
+        function(xhr) {
+          console.log("File loading error. Status code:", xhr.status);
+        }
+      );
+
+      svg.insert(document.getElementById("svg-container"), true);
+    }
   </script>
 </head>
 <body>
@@ -185,6 +235,7 @@
   </p>
   <button id="runTest">Run test</button>
   <button id="pathDemo">Path demo</button>
+  <button id="dragDemo">Drag demo</button>
   <div id="svg-container">Šo tekstu nomainīs SVG elements</div>
 </body>
 </html>
