@@ -777,13 +777,20 @@ class SVGBuilder extends SVGContainer {
     var endDrag = (evt) => {
       var ds = this.draggableStore;
       if (ds.selected) {
-        // Call the optional callback, it has power to change (constrain) the local translation
         if (ds.callback) {
-          var localPos = {
-            x: ds.xTOffset + ds.dxLocal,
-            y: ds.yTOffset + ds.dyLocal
+          var dragInfo = {
+            xScreen : evt.clientX,
+            yScreen : evt.clientY,
+            dxScreen: ds.dxScreen,
+            dyScreen: ds.dyScreen,
+            xLocal  : ds.xLocal,
+            yLocal  : ds.yLocal,
+            dxLocal : ds.dxLocal,
+            dyLocal : ds.dyLocal,
+            xObject : ds.xTOffset + ds.dxLocal,
+            yObject : ds.yTOffset + ds.dyLocal
           }
-          ds.callback("end", ds.selected, {x:ds.dxScreen, y:ds.dyScreen}, localPos);
+          ds.callback("end", ds.selected, dragInfo);
         }
         // Clear the selected draggable
         ds.selected = null;

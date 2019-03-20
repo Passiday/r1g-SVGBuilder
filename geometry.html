@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SVG modelēšana</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="text/javascript" src="js/SVGBuilder.js"></script>
+  <script>
+
+    window.onload = function() {
+      var svg = new SVGBuilder();
+
+      function Point(id, x, y) {
+        Point.index[id] = this;
+        this.id = id;
+        this.dependables = [];
+        this.x = x;
+        this.y = y;
+        this.body = svg.addGroup();
+        this.marker = this.body.addCircle({cx:0, cy:0, r:4, style:{fill:"#000", cursor: "move"}});
+        this.label = this.body.addText({x:5, y:-5, style:{fontFamily:"sans", fill:"#000", pointerEvents:"none"}}, this.id);
+        this.update();
+        ondrag = (state, body, dragInfo) => {
+          this.x = dragInfo.xObject;
+          this.y = dragInfo.yObject;
+          this.dependables.forEach(d => d.update());
+        }
+        svg.draggable(this.marker, ondrag, this.body); 
+      }
+      Point.prototype.addDependable = function(dependable) {
+        this.dependables.push(dependable);
+      }
+      Point.prototype.removeDependable = function(dependable) {
+        this.dependables = this.dependables.filter(d => d !== dependable);
+      }
+      Point.prototype.update = function() {
+        this.body.translate(this.x, this.y);
+      }
+      Point.index = {}
+
+      function Line(id, pt1, pt2) {
+      	Line.index[id] = this;
+        this.id = id;
+        this.pt1 = pt1;
+        this.pt2 = pt2;
+        this.body = svg.addLine({style:{stroke:"#000", strokeWidth:3, pointerEvents:"none"}});
+        this.update();
+        this.pt1.addDependable(this);
+        this.pt2.addDependable(this);
+      }
+      Line.prototype.update = function() {
+        this.body.setAttributes({x1:this.pt1.x, y1:this.pt1.y, x2:this.pt2.x, y2:this.pt2.y});
+      }
+      Line.index = {}
+
+      // Model data
+
+      var points = {
+      	A: {x: 100, y: 100},
+        B: {x: 200, y: 100},
+        C: {x: 150, y: 200}
+      }
+      var lines = {
+        AB: {start:"A", end:"B"},
+        BC: {start:"B", end:"C"},
+        CA: {start:"C", end:"A"},
+      }
+
+      // Object creation
+
+      for (ptId in points) {
+        let pt = points[ptId];
+        new Point(ptId, pt.x, pt.y);
+      }
+      for (lnId in lines) {
+        let ln = lines[lnId];
+        new Line(lnId, Point.index[ln.start], Point.index[ln.end]);
+      }
+
+      svg.insert(document.getElementById("svg-container", true));
+    }
+
+  </script>
+</head>
+<body>
+  <div id="svg-container"></div>
+</body>
+</html>
