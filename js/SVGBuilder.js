@@ -2,7 +2,12 @@
 
 class SVGElement {
   // Base class for all svg elements
-  constructor() {}
+  constructor() {
+    this.attrList = [
+      "id", "style", "class",
+      "onclick", "onmousedown", "onmouseup", "onmousemove", "onmouseenter", "onmouseleave"
+    ];
+  }
 
   createElement(elementName, attr, nodeValue) {
     this.element = document.createElementNS("http://www.w3.org/2000/svg", elementName);
@@ -11,11 +16,11 @@ class SVGElement {
     return this.element;
   }
 
-  setAttributes(attr) {
+  setAttributes(attr, force) {
     if (!attr) attr = {};
     if (!this.attrList) return;
     for (let attrName in attr) {
-      if (this.attrList.includes(attrName)) {
+      if (force || this.attrList.includes(attrName)) {
         let attrValue = attr[attrName];
         if (attrValue === null) {
           this.element.removeAttribute(attrName);
@@ -55,7 +60,7 @@ class SVGElement {
 
   init(elementName, attr, attrList, nodeValue) {
     if (!attrList) attrList = [];
-    this.attrList = attrList;
+    this.attrList.push(...attrList);
     if (elementName === undefined) return;
     this.createElement(elementName, attr, nodeValue);
   }
@@ -72,7 +77,6 @@ class SVGElement {
   remove() {
     this.element.parentNode.removeChild(this.element);
   }
-
 
   clone() {
     if (!this.element) return null;
@@ -131,6 +135,15 @@ class SVGElement {
       t.apply();
     }
   }
+
+  setClip(clipPathId) {
+    if (clipPathId) {
+      //this.setAttributes({"clip-path": "url(#" + SVGUtils.htmlEncode(clipPathId) + ")"}, true);
+      this.setAttributes({"clip-path": "url(#" + clipPathId + ")"}, true);
+    } else {
+      this.setAttributes({"clip-path": null}, true);
+    }
+  }
 }
 
 /* class SVGTransform *********************************************************************************************************************/
@@ -179,7 +192,7 @@ class SVGTransform {
 class SVGRect extends SVGElement {
   constructor(attr) {
     super();
-    this.init("rect", attr, ["id", "style", "class", "x", "y", "width", "height", "rx", "ry", "onclick"]);
+    this.init("rect", attr, ["x", "y", "width", "height", "rx", "ry"]);
   }
 }
 
@@ -188,7 +201,7 @@ class SVGRect extends SVGElement {
 class SVGCircle extends SVGElement {
   constructor(attr) {
     super();
-    this.init("circle", attr, ["id", "style", "class", "cx", "cy", "r", "onclick", "onmousedown", "onmouseup", "onmousemove", "onmouseenter", "onmouseleave"]);
+    this.init("circle", attr, ["cx", "cy", "r"]);
   }
 }
 
@@ -197,7 +210,7 @@ class SVGCircle extends SVGElement {
 class SVGEllipse extends SVGElement {
   constructor(attr) {
     super();
-    this.init("ellipse", attr, ["id", "style", "class", "cx", "cy", "rx", "ry", "onclick"]);
+    this.init("ellipse", attr, ["cx", "cy", "rx", "ry"]);
   }
 }
 
@@ -206,7 +219,7 @@ class SVGEllipse extends SVGElement {
 class SVGLine extends SVGElement {
   constructor(attr) {
     super();
-    this.init("line", attr, ["id", "style", "class", "x1", "y1", "x2", "y2", "onclick"]);
+    this.init("line", attr, ["x1", "y1", "x2", "y2"]);
   }
 }
 
@@ -215,7 +228,7 @@ class SVGLine extends SVGElement {
 class SVGPolyline extends SVGElement {
   constructor(attr, points) {
     super();
-    this.init("polyline", attr, ["id", "style", "class", "onclick"]);
+    this.init("polyline", attr);
     this.points = (typeof points == "undefined") ? [] : points;
     this.update();
   }
@@ -251,7 +264,7 @@ class SVGPolyline extends SVGElement {
 class SVGPolygon extends SVGPolyline {
   constructor(attr, points) {
     super();
-    this.init("polygon", attr, ["id", "style", "class", "onclick"]);
+    this.init("polygon", attr);
     this.points = (typeof points == "undefined") ? [] : points;
     this.update();
   }
@@ -264,7 +277,7 @@ class SVGPolygon extends SVGPolyline {
 class SVGPath extends SVGElement  {
   constructor(attr, points) {
     super();
-    this.init("path", attr, ["id", "style", "class", "onclick"]);
+    this.init("path", attr);
     this.points = (typeof points == "undefined") ? [] : points;
     this.update();
   }
@@ -494,7 +507,7 @@ class SVGPath extends SVGElement  {
 class SVGText extends SVGElement {
   constructor(attr, value) {
     super();
-    this.init("text", attr, ["id", "style", "class", "x", "y", "onclick"], value);
+    this.init("text", attr, ["x", "y"], value);
   }
 }
 
@@ -643,6 +656,12 @@ class SVGContainer extends SVGElement {
     return svgObject;
   }
 
+  addClipPath(attr) {
+    var svgObject = new SVGClipPath(attr);
+    svgObject.insert(this.element);
+    return svgObject;
+  }
+
   addSVGFile(attr, svgURL, onLoaded, onError) {
     var svgObject = new SVGFile(attr, svgURL);
     var container = this.element;
@@ -668,7 +687,7 @@ class SVGBuilder extends SVGContainer {
 
   draggable(handle, callback, body) {
     // handle   - the object that captures the mousedown event
-    // callback - optional function(state, body, dScreen, dLocal) called when the dragging takes place
+    // callback - optional function(state, body, dragInfo) called when the dragging takes place
     // body     - optional object that is dragged around. By default, it's the handle. But it can be another element, for example a group object that contains the handle object
 
     if (!this.draggableStore) {
@@ -815,6 +834,15 @@ class SVGBuilder extends SVGContainer {
 class SVGGroup extends SVGContainer {
   constructor(attr) {
     super();
-    this.init("g", attr, ["id", "style", "class", "onclick"]);
+    this.init("g", attr);
+  }
+}
+
+/* class SVGClipPath *************************************************************************************************************************/
+
+class SVGClipPath extends SVGContainer {
+  constructor(attr) {
+    super();
+    this.init("clipPath", attr);
   }
 }
