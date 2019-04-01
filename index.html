@@ -45,6 +45,8 @@
       document.getElementById("runTest").addEventListener("click", runTest);
       document.getElementById("pathDemo").addEventListener("click", pathDemo);
       document.getElementById("dragDemo").addEventListener("click", dragDemo);
+      document.getElementById("useDemo").addEventListener("click", useDemo);
+      document.getElementById("animationDemo").addEventListener("click", animationDemo);
     }
 
     function runTest() {
@@ -244,6 +246,47 @@
 
       svg.insert(document.getElementById("svg-container"), true);
     }
+
+    function useDemo() {
+
+      var svg = new SVGBuilder();
+
+      var defs = svg.addDefs();
+      var defsRect = defs.addRect({id:"defsRect", x:0, y:0, width:150, height:50, style:{stroke:"blue", strokeWidth:10}});
+
+      var use1 = svg.addUse({x:50, y:50, style:{fill:"red"}}, "defsRect");
+      var use2 = svg.addUse({x:100, y:100, style:{fill:"green"}}, "defsRect");
+      svg.addUse({x:100, y:100, style:{fill:"yellow"}}, "defsRect");
+      use2.rotate(45, 175, 125);
+
+      svg.insert(document.getElementById("svg-container"), true);
+    }
+
+    function animationDemo() {
+      var svg = new SVGBuilder();
+
+      var smileyClip = svg.addClipPath({id:"smileyClip"});
+      smileyClip.addRect({x:0, y:0, width:100, height:100});
+
+      for (let i = 0; i < 40; i++) svg.addCircle({cx:Math.random()*700, cy:Math.random()*400, r:Math.random()*100, style:{fill:"#bbb", fillOpacity:0.50}});
+
+      var smiley = new SVGSprite(svg, 100, 100);
+      smiley.loadSpritesheet("assets/smiley.svg", 4, 8);
+      var s1 = smiley.create(svg, 100, 100);
+      var s2 = smiley.create(svg, 200, 200);
+      s2.rotate(30, 50, 50);
+      s2.scale(1.5, 1.5);
+      var s3 = smiley.create(svg, 400, 150);
+      s3.rotate(-45, 50, 50);
+      s3.scale(3, 3);
+
+      svg.insert(document.getElementById("svg-container"), true);
+
+      s1.loop(1);
+      s2.loop(3);
+      s3.loop(5);
+    }
+
   </script>
 </head>
 <body>
@@ -254,6 +297,8 @@
   <button id="runTest">Run test</button>
   <button id="pathDemo">Path demo</button>
   <button id="dragDemo">Drag demo</button>
+  <button id="useDemo">Use demo</button>
+  <button id="animationDemo">Animation demo</button>
   <div id="svg-container">Šo tekstu nomainīs SVG elements</div>
 </body>
 </html>

@@ -511,6 +511,20 @@ class SVGText extends SVGElement {
   }
 }
 
+/* class SVGUse **************************************************************************************************************************/
+
+class SVGUse extends SVGElement {
+  constructor(attr, href) {
+    super();
+    this.init("use", attr, ["x", "y"]);
+    this.setHref(href);
+  }
+
+  setHref(href) {
+    this.element.setAttributeNS("http://www.w3.org/1999/xlink", "href", "#" + href);
+  }
+}
+
 /* class SVGFile **************************************************************************************************************************/
 
 class SVGFile extends SVGElement {
@@ -572,6 +586,10 @@ class SVGFile extends SVGElement {
       svgObject = new SVGText();
     } else if (nodeName == "g") {
       svgObject = new SVGGroup();
+    } else if (nodeName == "defs") {
+      svgObject = new SVGDefs();
+    } else if (nodeName == "clipPath") {
+      svgObject = new SVGClipPath();
     } else {
       svgObject = new SVGElement();
     }
@@ -652,6 +670,18 @@ class SVGContainer extends SVGElement {
 
   addGroup(attr) {
     var svgObject = new SVGGroup(attr);
+    svgObject.insert(this.element);
+    return svgObject;
+  }
+
+  addDefs(attr) {
+    var svgObject = new SVGDefs(attr);
+    svgObject.insert(this.element);
+    return svgObject;
+  }
+
+  addUse(attr, href) {
+    var svgObject = new SVGUse(attr, href);
     svgObject.insert(this.element);
     return svgObject;
   }
@@ -844,5 +874,94 @@ class SVGClipPath extends SVGContainer {
   constructor(attr) {
     super();
     this.init("clipPath", attr);
+  }
+}
+
+/* class SVGDefs *************************************************************************************************************************/
+
+class SVGDefs extends SVGContainer {
+  constructor(attr) {
+    super();
+    this.init("defs", attr);
+  }
+}
+
+/* SVGSprite and SVGSpriteInstance *************************************************************************************************************************/
+
+class SVGSprite {
+  constructor(svg, spriteWidth, spriteHeight) {
+    this.spriteWidth = spriteWidth;
+    this.spriteHeight = spriteHeight;
+    this.id = Math.floor(Math.random() * 1000000);
+
+    var defs = svg.element.ownerDocument.getElementById("defs-" + this.id);
+    if (defs) {
+      this.defs = new SVGDefs();
+      this.defs.wrap(defs);
+    } else {
+      this.defs = svg.addDefs({id:"defs-" + this.id});
+    }
+
+    var clip = this.defs.addClipPath({id:"clip-" + this.id});
+    clip.addRect({x:0, y:0, width:this.spriteWidth, height:this.spriteHeight});
+
+    this.loaded = false;
+  }
+
+  loadSpritesheet(svgFileURL, cols, frames) {
+    this.cols = cols;
+    this.frames = frames;
+    if (this.spriteSheet) this.spriteSheet.remove();
+    this.spriteSheet = this.defs.addGroup({id:"spriteSheet-" + this.id});
+    this.spriteSheet.addSVGFile({}, svgFileURL, () => this.loaded = true);
+  }
+
+  create(container, x, y) {
+    var instance = new SVGSpriteInstance(container, this);
+    instance.translate(x, y);
+    return instance;
+  }
+}
+
+class SVGSpriteInstance extends SVGGroup {
+
+  constructor(container, source) {
+    super();
+    this.source = source;
+    this.insert(container.element);
+    this.setClip("clip-" + source.id);
+    this.spriteSheet = this.addUse({x:0, y:0}, "spriteSheet-" + source.id);
+    this.frame = 0;
+    this.framerate = 1;
+    this.looping = false;
+  }
+
+  setFrame(frame) {
+    frame = frame % this.source.frames;
+    this.frame = frame;
+    var row = Math.floor(frame / this.source.cols);
+    var col = frame % this.source.cols;
+    this.spriteSheet.translate(-this.source.spriteWidth * col, -this.source.spriteHeight * row);
+  }
+
+  nextFrame() {
+    this.setFrame(++this.frame);
+  }
+
+  loop(framerate) {
+    if (!framerate) framerate = 1;
+    this.framerate = framerate;
+    var looper = () => {
+      if (!document.getElementById("clip-" + this.source.id)) return;
+      if (!this.looping) return;
+      this.nextFrame();
+      window.setTimeout(looper, 1000 / this.framerate);            
+    }
+    this.looping = true;
+    looper();
+  }
+
+  stop() {
+    this.looping = false;
   }
 }
