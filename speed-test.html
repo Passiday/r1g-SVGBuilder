@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SVG modelēšana</title>
+  <script type="text/javascript" src="js/SVGBuilder.js"></script>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="text/javascript">
+
+    window.onload = function() {
+      document.getElementById("speedTest").addEventListener("click", speedTest);
+    }
+
+    var testRunning;
+
+    function randomRGB(e) {
+      var r = Math.floor(Math.random() * 0x100);
+      var g = Math.floor(Math.random() * 0x100);
+      var b = Math.floor(Math.random() * 0x100);
+      var randomRGB = "#" + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).substr(1);
+      return randomRGB;
+    }
+
+    function speedTest() {
+
+      if (testRunning) clearTimeout(testRunning);
+
+      svg = new SVGBuilder();
+      svg.insert(document.getElementById("svg-container"), true);
+      var fpsSvg = svg.addText({x:5, y:15}, 123);
+
+      var bugs = [];
+      var bugCount = 500;
+
+      var cx = 350, cy = 200;
+      var bug = bugs[0];
+      svg.addCircle({cx:cx, cy:cy, r:5, style:{fill:"red"}});
+      for (let i = 0; i < bugCount; i++) {
+        let bug = {
+          radius: Math.sqrt(Math.random() * 90000),
+          angle : Math.PI / 180 * Math.random() * 360,
+          speed : Math.PI / 180 * (Math.random() * 10 + 1)
+        }
+        bug.svg = svg.addRect({x:-5, y:-25, width:10, height:50, style:{fill:randomRGB(), fillOpacity:0.8}});
+        bugs.push(bug);
+      };
+
+      var previousTime = new Date();
+
+      function moveBugs() {
+        var fps = 1000 / (new Date() - previousTime);
+        fpsSvg.setValue(Math.floor(fps * 100) / 100);
+        previousTime = new Date();
+
+        bugs.forEach(bug => {
+          bug.angle += bug.speed;
+          bug.svg.translate(cx + Math.cos(bug.angle) * bug.radius, cy + Math.sin(bug.angle) * bug.radius);
+          bug.svg.rotate(bug.angle / Math.PI * 180);
+        });
+        testRunning = window.setTimeout(moveBugs, 1000/30);
+      }
+
+      moveBugs();
+
+      /*
+      // A little example of clone() method
+      var el2 = el.clone();
+      el2.setStyle({fill:"green"});
+      el2.translate(100, 100);
+      el2.insert(svg.element);
+
+      // Create a placeholder element where the svg image will be stored
+      var g1 = svg.addGroup();
+      g1.scale(5, 3);
+      g1.translate(50, 10);
+      g1.rotate(10);
+
+      // Load the svg image from file
+      var f = g1.addSVGFile({}, svgFileURL, function() {
+        // Important: callback called when the file has loaded
+        console.log("SVG file loaded");
+        var obj = this.getElement("rect817");
+        obj.setStyle({fill:"black"});
+      }, function(xhr) {
+        // This optional function called in case of loading error
+        console.log("File loading error. Status code:", xhr.status);
+      });
+      console.log("addSVGFile called"); // This will happen before the callback is called
+
+      // Create a second placeholder
+      var g2 = svg.addGroup();
+      g2.scale(1, 4);
+      g2.translate(300, 200);
+      g2.rotate(-30);
+      */
+    }
+
+  </script>
+</head>
+<body>
+  <h1>SVGBuilder: SVG modelēšana ar JavaScript</h1>
+  <p class="note">
+    Demo: animētu objektu stresa tests.
+  </p>
+  <button id="speedTest">Run test</button>
+  <div id="svg-container">Šo tekstu nomainīs SVG elements</div>
+</body>
+</html>
