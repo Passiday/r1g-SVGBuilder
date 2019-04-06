@@ -28,6 +28,17 @@
       svg = new SVGBuilder();
       svg.insert(document.getElementById("svg-container"), true);
 
+      document.getElementById("randomViewbox").onclick = () => {
+        let x1 = Math.random() * 700;
+        let y1 = Math.random() * 400;
+        let x2 = Math.random() * 700;
+        let y2 = Math.random() * 400;
+        if (x2 < x1) {let swp = x2; x2 = x1; x1 = swp}
+        if (y2 < y1) {let swp = y2; y2 = y1; y1 = swp}
+        let viewBox = [x1, y1, x2 - x1, y2 - y1];
+        svg.setAttributes({viewBox:viewBox.join(" "), preserveAspectRatio:"meet"}, true);
+      };
+
       let realFpsSvg = svg.addText({x:5, y:15}, "");
       let correctionSvg = svg.addText({x:5, y:30}, "");
 
@@ -95,6 +106,7 @@
     Demo: animētu objektu stresa tests.
   </p>
   <button id="speedTest">Run test</button>
+  <button id="randomViewbox">Random viewbox</button>
   <div id="svg-container">Šo tekstu nomainīs SVG elements</div>
 </body>
 </html>
