@@ -715,6 +715,63 @@ class SVGBuilder extends SVGContainer {
     this.init("svg", attr, ["viewBox"]);
   }
 
+  setViewBox(params) {
+    /*
+    Set the viewbox, aspect ratio and alignment properties
+    params: object {
+      x
+      y
+      width
+      height
+      xAlign: min | mid | max
+      yAlign: min | mid | max
+      fit: meet (default) | slice | stretch
+    }
+    if some parameters are missing, read them from the current viewBox attribute, if available
+    if params is null or missing - the viewbox and preserveAspectRatio parameters are removed
+    https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/viewBox
+    https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/preserveAspectRatio
+    */
+    if (!params || typeof params != "object") {
+      this.setAttributes({viewBox:null, preserveAspectRatio: null}, true);
+      return;
+    }
+    // Get the current properties by reading and parsing the element's viewBox and preserveAspectRatio attributes
+    var currentViewBox = this.element.getAttribute("viewBox");
+    var currentPreserveAspectRatio = this.element.getAttribute("preserveAspectRatio");
+    //console.log("currentViewBox=", currentViewBox, "; currentPreserveAspectRatio=", currentPreserveAspectRatio);
+    var parseViewBox = /^(-?\d*\.?\d*) (-?\d*\.?\d*) (\d*\.?\d*) (\d*\.?\d*)$/.exec(currentViewBox);
+    if (parseViewBox) {
+      if (params.x === undefined) params.x = parseViewBox[1];
+      if (params.y === undefined) params.y = parseViewBox[2];
+      if (params.width === undefined) params.width = parseViewBox[3];
+      if (params.height === undefined) params.height = parseViewBox[4];
+    }
+    var parsePreserveAspectRatio = /^(none|x(Min|Mid|Max)Y(Min|Mid|Max))( (meet|slice))?$/.exec(currentPreserveAspectRatio);
+    if (parsePreserveAspectRatio) {
+      if (parsePreserveAspectRatio[1] == "none") {
+        if (params.fit === undefined) params.fit = "stretch";
+      } else {
+        if (params.xAlign === undefined) params.xAlign = parsePreserveAspectRatio[2].toLowerCase();
+        if (params.yAlign === undefined) params.yAlign = parsePreserveAspectRatio[3].toLowerCase();
+        if (params.fit === undefined && parsePreserveAspectRatio[4]) params.fit = parsePreserveAspectRatio[5].toLowerCase() == "slice" ? "slice" : "meet";
+      }
+    }
+    // Fill in the defaults for the missing parameters
+    if (params.x === undefined) params.x = 0;
+    if (params.y === undefined) params.y = 0;
+    if (params.width === undefined) params.width = this.element.clientWidth;
+    if (params.height === undefined) params.height = this.element.clientHeight;
+    if (params.xAlign === undefined) params.xAlign = "mid";
+    if (params.yAlign === undefined) params.yAlign = "mid";
+    if (params.fit === undefined) params.fit = "meet";
+    // Set the new attribute values
+    var newViewBox = `${params.x} ${params.y} ${params.width} ${params.height}`;
+    var newPreserveAspectRatio = params.fit == "stretch" ? "none" : "xM" + params.xAlign.slice(1) + "YM" + params.yAlign.slice(1) + " " + params.fit;
+    //console.log("viewBox =", newViewBox, "; preserveAspectRatio =", newPreserveAspectRatio)
+    this.setAttributes({viewBox:newViewBox, preserveAspectRatio:newPreserveAspectRatio}, true);
+  }
+
   draggable(handle, callback, body) {
     // handle   - the object that captures the mousedown event
     // callback - optional function(state, body, dragInfo) called when the dragging takes place
