@@ -47,6 +47,7 @@
       document.getElementById("dragDemo").addEventListener("click", dragDemo);
       document.getElementById("useDemo").addEventListener("click", useDemo);
       document.getElementById("animationDemo").addEventListener("click", animationDemo);
+      document.getElementById("orderDemo").addEventListener("click", orderDemo);
     }
 
     function runTest() {
@@ -287,6 +288,34 @@
       s3.loop(5);
     }
 
+    function orderDemo() {
+      var svg = new SVGBuilder();
+
+      var actions = ["lowerToBottom()", "lower()", "raise()", "raiseToTop()"];
+      var actionId = 0;
+
+      let rearrane = (e) => {
+        if (actionId == 0) SVGBuilder.fromElement(e.target).lowerToBottom();
+        if (actionId == 1) SVGBuilder.fromElement(e.target).lower();
+        if (actionId == 2) SVGBuilder.fromElement(e.target).raise();
+        if (actionId == 3) SVGBuilder.fromElement(e.target).raiseToTop();
+      }
+
+      let g = svg.addGroup();
+      g.addRect({x:100, y: 40, width:300, height:200, style:{fill:"blue", stroke:"orange", strokeWidth:10, cursor:"pointer"}, onclick:rearrane});
+      g.addRect({x:200, y:100, width:300, height:200, style:{fill:"purple", stroke:"yellow", strokeWidth:10, cursor:"pointer"}, onclick:rearrane});
+      g.addRect({x:300, y:160, width:300, height:200, style:{fill:"green", stroke:"red", strokeWidth:10, cursor:"pointer"}, onclick:rearrane});
+
+      let actionBtn = svg.addRect({x:550, y:5, width:130, height:20, rx:3, ry:3, style:{fill:"#88f", cursor:"pointer"}});
+      let actionName = svg.addText({x:560, y:20, style:{fill:"white", pointerEvents:"none"}}, actions[actionId]);
+      actionBtn.setAttributes({onclick:() => {
+        actionId = ++actionId % 4;
+        actionName.setValue(actions[actionId]);
+      }});
+
+      svg.insert(document.getElementById("svg-container"), true);
+    }
+
   </script>
 </head>
 <body>
@@ -299,6 +328,7 @@
   <button id="dragDemo">Drag demo</button>
   <button id="useDemo">Use demo</button>
   <button id="animationDemo">Animation demo</button>
+  <button id="orderDemo">Order demo</button>
   <div id="svg-container">Šo tekstu nomainīs SVG elements</div>
 </body>
 </html>

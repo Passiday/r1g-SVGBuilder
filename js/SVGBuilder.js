@@ -16,6 +16,10 @@ class SVGElement {
     return this.element;
   }
 
+  wrapElement(targetNode) {
+    this.element = targetNode;
+  }
+
   setAttributes(attr, force) {
     if (!attr) attr = {};
     if (!this.attrList) return;
@@ -85,10 +89,6 @@ class SVGElement {
     return c;
   }
 
-  wrap(targetNode) {
-    this.element = targetNode;
-  }
-
   getTransform(template) {
     if (!this.transform) this.transform = new SVGTransform(this.element, template);
     return this.transform;
@@ -143,6 +143,26 @@ class SVGElement {
     } else {
       this.setAttributes({"clip-path": null}, true);
     }
+  }
+
+  lowerToBottom() {
+    this.element.parentNode.insertBefore(this.element, this.element.parentNode.firstChild);
+  }
+
+  lower() {
+    let previousSibling = this.element.previousSibling;
+    if (!previousSibling) return;
+    this.element.parentNode.insertBefore(this.element, previousSibling);
+  }
+
+  raise() {
+    let nextSibling = this.element.nextSibling;
+    if (!nextSibling) return;
+    this.element.parentNode.insertBefore(this.element, nextSibling.nextSibling);
+  }
+
+  raiseToTop() {
+    this.element.parentNode.appendChild(this.element);
   }
 }
 
@@ -253,8 +273,8 @@ class SVGPolyline extends SVGElement {
     return c;
   }
 
-  wrap(targetNode) {
-    super.wrap(targetNode);
+  wrapElement(targetNode) {
+    super.wrapElement(targetNode);
     // TODO: parse the "points" attribute 
   }
 }
@@ -496,8 +516,8 @@ class SVGPath extends SVGElement  {
     return c;
   }
 
-  wrap(targetNode) {
-    super.wrap(targetNode);
+  wrapElement(targetNode) {
+    super.wrapElement(targetNode);
     // TODO: parse the "d" attribute 
   }
 }
@@ -566,35 +586,7 @@ class SVGFile extends SVGElement {
     var node = this.element.querySelector('#' + id);
     if (!node) return null;
 
-    var nodeName = node.nodeName.toLowerCase();
-    var svgObject;
-    if (nodeName == "rect") {
-      svgObject = new SVGRect();
-    } else if (nodeName == "circle") {
-      svgObject = new SVGCircle();
-    } else if (nodeName == "ellipse") {
-      svgObject = new SVGEllipse();
-    } else if (nodeName == "line") {
-      svgObject = new SVGLine();
-    } else if (nodeName == "polyline") {
-      svgObject = new SVGPolyline();
-    } else if (nodeName == "polygon") {
-      svgObject = new SVGPolygon();
-    } else if (nodeName == "path") {
-      svgObject = new SVGPath();
-    } else if (nodeName == "text") {
-      svgObject = new SVGText();
-    } else if (nodeName == "g") {
-      svgObject = new SVGGroup();
-    } else if (nodeName == "defs") {
-      svgObject = new SVGDefs();
-    } else if (nodeName == "clipPath") {
-      svgObject = new SVGClipPath();
-    } else {
-      svgObject = new SVGElement();
-    }
-    svgObject.wrap(node);
-    return svgObject;
+    return SVGBuilder.fromElement(node);
   }
 }
 
@@ -914,6 +906,38 @@ class SVGBuilder extends SVGContainer {
 
     handle.element.addEventListener("mousedown", startDrag);
   }
+
+  static fromElement(targetNode) {
+    var nodeName = targetNode.nodeName.toLowerCase();
+    var svgObject;
+    if (nodeName == "rect") {
+      svgObject = new SVGRect();
+    } else if (nodeName == "circle") {
+      svgObject = new SVGCircle();
+    } else if (nodeName == "ellipse") {
+      svgObject = new SVGEllipse();
+    } else if (nodeName == "line") {
+      svgObject = new SVGLine();
+    } else if (nodeName == "polyline") {
+      svgObject = new SVGPolyline();
+    } else if (nodeName == "polygon") {
+      svgObject = new SVGPolygon();
+    } else if (nodeName == "path") {
+      svgObject = new SVGPath();
+    } else if (nodeName == "text") {
+      svgObject = new SVGText();
+    } else if (nodeName == "g") {
+      svgObject = new SVGGroup();
+    } else if (nodeName == "defs") {
+      svgObject = new SVGDefs();
+    } else if (nodeName == "clipPath") {
+      svgObject = new SVGClipPath();
+    } else {
+      svgObject = new SVGElement();
+    }
+    svgObject.wrapElement(targetNode);
+    return svgObject;
+  }
 }
 
 /* class SVGGroup *************************************************************************************************************************/
@@ -954,7 +978,7 @@ class SVGSprite {
     var defs = svg.element.ownerDocument.getElementById("defs-" + this.id);
     if (defs) {
       this.defs = new SVGDefs();
-      this.defs.wrap(defs);
+      this.defs.wrapElement(defs);
     } else {
       this.defs = svg.addDefs({id:"defs-" + this.id});
     }
