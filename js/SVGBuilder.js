@@ -527,7 +527,7 @@ class SVGPath extends SVGElement  {
 class SVGText extends SVGElement {
   constructor(attr, value) {
     super();
-    this.init("text", attr, ["x", "y"], value);
+    this.init("text", attr, ["x", "y", "text-anchor"], value);
   }
 }
 
